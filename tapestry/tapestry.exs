@@ -10,8 +10,8 @@ defmodule TapestrySimulator do
         numRequests=Enum.at(args, 1)
 
         allNodes = Enum.map((1..numNodes), fn(x) ->
-          pid=TapestrySimulator.Create.start_node()
-          TapestrySimulator.Create.update_node_id(pid,x)
+          pid=TapestrySimulator.Insertion.start_node()
+          TapestrySimulator.Insertion.insertNode(pid,x)
           pid
         end)
 
