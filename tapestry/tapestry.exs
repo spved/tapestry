@@ -11,11 +11,18 @@ defmodule TapestrySimulator do
 
         allNodes = Enum.map((1..numNodes), fn(x) ->
           pid=TapestrySimulator.Insertion.start_node()
-          TapestrySimulator.Insertion.insertNode(pid,x,numNodes)
+          TapestrySimulator.Insertion.setHash(pid,x)
           pid
         end)
+        
+
+      Enum.map(allNodes, fn(x) ->
+           TapestrySimulator.Insertion.insertNode(x,allNodes)
+          
+        end)
         end
-     
+
+      
   end
    
   def infiniteLoop() do
