@@ -15,10 +15,12 @@ defmodule TapestrySimulator.Insertion do
   def insertNode(pid, nodeID) do
     GenServer.call(pid, {:setHashId,nodeID})
     GenServer.call(pid, {:setNeighbourMap,nodeID})
-    list =  Enum.filter(matchSuffix("356A192B79","356AYUO879"), & !is_nil(&1))
-    IO.inspect Enum.filter(matchSuffix("356A192B79","356AYUO879"), & !is_nil(&1))
+     n1 = String.graphemes("356AY90B79")
+     n2 = String.graphemes("356AY90B79")
+    #list =  Enum.filter(print_multiple_times(n1,n2,0), & !is_nil(&1))
+    IO.inspect (print_multiple_times(n1,n2,0))
     #IO.inspect list[length(list)-1]
-    IO.inspect Enum.at(list, length(list)-1)
+    #IO.inspect Enum.at(list, length(list)-1)
   end
 
   def handle_call({:setHashId,nodeID}, _from ,state) do
@@ -30,6 +32,24 @@ defmodule TapestrySimulator.Insertion do
     {:reply,hashId, state}
     
   end
+  def print_multiple_times(node1, node2, n) when n >= 40 do
+    
+  end
+
+   def print_multiple_times(node1, node2, n) do
+    if(Enum.at(node1, n) == Enum.at(node2,n)) do
+      #(n+1)
+      #IO.inspect n
+      print_multiple_times(node1, node2, n + 1)
+              
+          else
+              
+             print_multiple_times(node1, node2, 40)
+             n
+            end
+    
+  end
+
   def matchSuffix(node1, node2) do
    n1 = String.graphemes(node1)
    n2 = String.graphemes(node2)
