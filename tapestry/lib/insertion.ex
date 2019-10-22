@@ -12,31 +12,27 @@ defmodule TapestrySimulator.Insertion do
     pid
   end
 
-  def insertNode(pid, nodeID, table) do
-    GenServer.call(pid, {:setHashId,nodeID,table})
+  def insertNode(pid, nodeID,numNodes) do
+    GenServer.call(pid, {:setHashId,nodeID})
     GenServer.call(pid, {:setNeighbourMap,nodeID})
-     n1 = String.graphemes("356AY78979")
+    GenServer.call(pid, {:fillNeighbourMap,nodeID,numNodes})
+    n1 = String.graphemes("356AY78979")
      n2 = String.graphemes("356AY90B79")
      len = matchSuffix(n1,n2,0)
     IO.inspect (len)
     
   end
 
-  def handle_call({:setHashId,nodeID,table}, _from ,state) do
+  def handle_call({:setHashId,nodeID}, _from ,state) do
    #IO.inspect state
     {_, neighborMap} = state
     hashId = :crypto.hash(:sha, Integer.to_string(nodeID))|> Base.encode16
     IO.inspect hashId
-    [{_, currentList}] = :ets.lookup(table, "count")
-    currentList = currentList ++ [hashId]
-    :ets.insert(table, {"count",currentList})
-    IO.inspect "currentList"
-    IO.inspect currentList
     state={hashId, neighborMap}
     {:reply,hashId, state}
     
   end
-  def matchSuffix(node1, node2, n) when n > 9 do
+  def matchSuffix(node1, node2, n) when n > 39 do
     n
   end
 
@@ -66,32 +62,39 @@ defmodule TapestrySimulator.Insertion do
   def handle_call({:setNeighbourMap,nodeID}, _from ,state) do
     {hashId, _} = state
     
-    #neighborMap = Enum.map((1..40), fn(x) ->
-     #      neighborMap = %{
-      #    x => %{0 => hashId, 1 => hashId, 2 => hashId}
-       #   }
-        #end)
+   
 
          neighborMap = Enum.map((1..40), fn(x) ->
            Enum.map((1..16), fn(y) ->
            neighborMap = %{
-          x => %{y => hashId}
+          x => %{y => ""}
           }
           end)
         end)
 
-        #Enum.map((1..16), fn(y) ->
-           
-       #   y => hashId
-          
-      #  end)
+        
 
 
-        IO.inspect neighborMap
+       # IO.inspect neighborMap
     #neighborMap =
     state={hashId, neighborMap}
     {:reply,hashId, state}
   end
+
+  def handle_call({:fillNeighbourMap,nodeID,numNodes}, _from ,state) do
+    {hashId, neighborMap} = state
+    
+       Enum.map((1..40), fn(x) ->
+          neighborMap = fillLevel(x,neighborMap,hashId,numNodes)
+        end)
+
+
+        #IO.inspect Enum.at(Enum.at(neighborMap, 1),1)
+ 
+    state={hashId, neighborMap}
+    {:reply,hashId, state}
+  end
+ 
   def init(:ok) do
     {:ok, {0,[]}} #{hashId, neighborMap} , {hashId, neighborMap}
   end
