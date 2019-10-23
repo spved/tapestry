@@ -27,8 +27,10 @@ defmodule TapestrySimulator.Insertion do
           }
           end)
         end)
+        IO.inspect test
         #IO.inspect List.replace_at(test, 2, List.replace_at(test, 2, "hello"))
-         List.replace_at(test, 1,"hh")
+         IO.inspect List.replace_at(test, 1,%{1 => %{2 => "k"}})
+         # test = %{1 => %{2 => "k"}}
          IO.inspect test
      #n1 = String.graphemes("356AY78979")
      #n2 = String.graphemes("356AY90B79")
