@@ -14,7 +14,8 @@ defmodule TapestrySimulator do
           TapestrySimulator.Insertion.setHash(pid,x)
           pid
         end)
-        
+        IO.inspect "allnodes"
+        IO.inspect allNodes
 
       Enum.map(allNodes, fn(x) ->
            TapestrySimulator.Insertion.insertNode(x,allNodes)
