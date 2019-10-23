@@ -20,7 +20,7 @@ defmodule TapestrySimulator.Insertion do
      n2 = String.graphemes("356AY90B79")
      len = matchSuffix(n1,n2,0)
     IO.inspect (len)
-    
+
   end
 
   def handle_call({:setHashId,nodeID}, _from ,state) do
@@ -30,25 +30,9 @@ defmodule TapestrySimulator.Insertion do
     IO.inspect hashId
     state={hashId, neighborMap}
     {:reply,hashId, state}
-    
-  end
-  def matchSuffix(node1, node2, n) when n > 39 do
-    n
+
   end
 
-   def matchSuffix(node1, node2, n) do
-    if(Enum.at(node1, n) == Enum.at(node2,n)) do
-      matchSuffix(node1, node2, n + 1)
-              
-          else
-              
-             matchSuffix(node1, node2, 40)
-             n
-            end
-    
-  end
-
-  
   def handle_call({:getHashId}, _from ,state) do
     {hashId, _} = state
     {:reply,hashId, state}
@@ -61,8 +45,8 @@ defmodule TapestrySimulator.Insertion do
 
   def handle_call({:setNeighbourMap,nodeID}, _from ,state) do
     {hashId, _} = state
-    
-   
+
+
 
          neighborMap = Enum.map((1..40), fn(x) ->
            Enum.map((1..16), fn(y) ->
@@ -72,7 +56,7 @@ defmodule TapestrySimulator.Insertion do
           end)
         end)
 
-        
+
 
 
        # IO.inspect neighborMap
@@ -83,18 +67,28 @@ defmodule TapestrySimulator.Insertion do
 
   def handle_call({:fillNeighbourMap,nodeID,numNodes}, _from ,state) do
     {hashId, neighborMap} = state
-    
+
        Enum.map((1..40), fn(x) ->
           neighborMap = fillLevel(x,neighborMap,hashId,numNodes)
         end)
 
 
         #IO.inspect Enum.at(Enum.at(neighborMap, 1),1)
- 
+
     state={hashId, neighborMap}
     {:reply,hashId, state}
   end
- 
+
+  def handle_call({:getLevel, level}, _from ,state) do
+    {_, neighborMap} = state
+    levelNodes = Enum.at(neighborMap, level)
+    {:reply,levelNodes, state}
+  end
+
+  def handle_cast({:notifyNodes, Ni, diff},state) do
+    {hashId, _} = state 
+    i = String.at(hashId, diff)
+  end
   def init(:ok) do
     {:ok, {0,[]}} #{hashId, neighborMap} , {hashId, neighborMap}
   end
