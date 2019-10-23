@@ -13,7 +13,6 @@ defmodule TapestrySimulator.Insertion do
   end
   def setHash(pid, nodeID) do
    GenServer.call(pid, {:setHashId,nodeID})
-   GenServer.call(pid, {:setNeighborMap,nodeID})
   end
 
   def insertNode(pid,allNodes) do
@@ -47,27 +46,15 @@ defmodule TapestrySimulator.Insertion do
     {:reply, NeighborMap, state}
   end
 
-  def handle_call({:setNeighborMap,nodeID}, _from ,state) do
-    {hashId, _} = state
-    neighborMap = Enum.map((1..40), fn(x) ->
-           Enum.map((1..16), fn(y) ->
-           neighborMap = %{
-          x => %{y => ""}
-          }
-          end)
-    end)
-    state={hashId, neighborMap}
-    {:reply,hashId, state}
-  end
-
   def handle_call({:fillNeighborMap,nodeID,numNodes}, _from ,state) do
     {hashId, neighborMap} = state
 
+      #fillLevel will return list at each level, which is combined using map
        neighborMap = Enum.map((1..40), fn(x) ->
          fillLevel(x,neighborMap, self(), hashId,numNodes)
         end)
 
-        #IO.inspect neighborMap
+        IO.inspect neighborMap, label: hashId
 
     state={hashId, neighborMap}
     {:reply,hashId, state}
@@ -77,9 +64,8 @@ defmodule TapestrySimulator.Insertion do
   # 0 1 2 3 4 5 6 7 8 9 A B C D E F
   diff = level - 1
   n1 = String.graphemes(hashID)
-  #IO.inspect hashID
   levelIds = Enum.map((1..16), fn(k) ->
-    node = Enum.each((allNodes), fn(ni) ->
+    node = Enum.find((allNodes), fn(ni) ->
       nid = if(ni != pid) do
         nid = GenServer.call(ni, {:getHashId})
         nid
@@ -88,17 +74,14 @@ defmodule TapestrySimulator.Insertion do
       end
 
     n2 = String.graphemes(nid)
-    #IO.inspect nid
     x = TapestrySimulator.Util.matchSuffix(n1,n2,0)
-    node = if(x == diff) do
-      IO.inspect ni
-      ni
-    end
-    end)  
-    #IO.inspect node
+    #IO.inspect ni, label: x
+    x == diff
+  end)
+    #node at given level
     node
   end)
-  #IO.inspect levelIds
+  #array at that level
   levelIds
 end
 
