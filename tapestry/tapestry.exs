@@ -7,6 +7,11 @@ defmodule TapestrySimulator do
     else
       numNodes=Enum.at(args, 0)|>String.to_integer()
       allNodes = Enum.map((1..numNodes), fn(x) ->
+        #key = TapestrySimulator.Insertion.randomizer(8)
+        
+        #IO.inspect "key"
+        #IO.inspect key
+
         pid=TapestrySimulator.Insertion.start_node()
         TapestrySimulator.Insertion.setHash(pid,x)
         pid
@@ -18,7 +23,14 @@ defmodule TapestrySimulator do
         TapestrySimulator.Insertion.insertNode(x,allNodes)
        end)
 
+       IO.inspect Enum.at(allNodes, 0)
+       TapestrySimulator.Insertion.getSurrogate(allNodes,Enum.at(allNodes, 0))
      end
+
+      Enum.map(allNodes, fn(x) ->
+         TapestrySimulator.Insertion.insertNode(x,allNodes)
+     end
+
   end
 
   def infiniteLoop() do
