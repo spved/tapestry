@@ -23,7 +23,7 @@ defmodule TapestrySimulator do
         TapestrySimulator.Insertion.insertNode(x,allNodes)
        end)
       
-      {dynamicNodes,allNodes} = Enum.map((numNodes..numNodesAll), fn(x) -> 
+      dynamicNodes = Enum.map((numNodes..numNodesAll), fn(x) -> 
 
         pid=TapestrySimulator.Insertion.start_node()
         TapestrySimulator.Insertion.setHash(pid,x)
@@ -35,7 +35,7 @@ defmodule TapestrySimulator do
         allNodes = allNodes ++ pid
         IO.inspect allNodes, label: "added d"
         #IO.inspect dynamicNodes, label: "dynamicNodes each time"
-        {pid,pid}
+        pid
       end)
       IO.inspect "dynamicNodes"
       IO.inspect dynamicNodes
