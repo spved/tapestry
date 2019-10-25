@@ -20,6 +20,26 @@ defmodule TapestrySimulator.Insertion do
     GenServer.call(pid, {:fillNeighborMap,pid,allNodes})
     
   end
+
+   def createNeigborMap(pid) do
+
+    GenServer.call(pid, {:createNeigborMap,pid})
+    
+  end
+
+  def checkMap(pid) do
+
+    GenServer.call(pid, {:checkMap,pid})
+    
+  end
+   def handle_call({:checkMap,pid}, _from ,state) do
+    {hashId, neighborMap} = state
+    IO.inspect pid
+    IO.inspect hashId
+    IO.inspect neighborMap
+    {:reply,hashId, state}
+
+  end
    def getSurrogate(allNodes,pid) do
 
     GenServer.call(pid, {:getSurrogate,allNodes, pid})
@@ -67,7 +87,19 @@ defmodule TapestrySimulator.Insertion do
         end)
 
         IO.inspect neighborMap, label: hashId
+        #IO.inspect neighborMap
+    state={hashId, neighborMap}
+    {:reply,hashId, state}
+  end
+def handle_call({:createNeigborMap,nodeID}, _from ,state) do
+    {hashId, _} = state
 
+      neighborMap = Enum.map((1..8), fn(x) ->
+           lis = Enum.map((1..4), fn(y) ->
+            nil  
+        end)
+        end)
+       IO.inspect neighborMap
     state={hashId, neighborMap}
     {:reply,hashId, state}
   end
@@ -77,9 +109,9 @@ defmodule TapestrySimulator.Insertion do
     
     {hashId, neighborMap} = state
     IO.inspect "hashId"
-    IO.inspect "30132123"
-    n1 = String.graphemes("30132123")
-    
+    #IO.inspect "30132123"
+    n1 = String.graphemes(hashId)
+    IO.inspect hashId
     nodes = Enum.map((allNodes), fn(ni) ->
       nhash = if(ni != pid) do
         GenServer.call(ni, {:getHashId})
@@ -148,21 +180,24 @@ defmodule TapestrySimulator.Insertion do
     IO.inspect s, label: "s"
     #sHash = GenServer.call(s, {:getHashId})
     IO.inspect sHash, label: "sHash"
-   # IO.inspect "just state"
+    IO.inspect "just state"
+    IO.inspect state
    {hashId, neighborMap} = state
-   IO.inspect "30132123", label: "test_newNode"
+   IO.inspect newNodeHash, label: "test_newNode"
    IO.inspect max, label: "max"
-   #index = String.to_integer(String.at(newNodeHash,max))
-   index = String.to_integer(String.at("30132123",max))
+   index = String.to_integer(String.at(newNodeHash,max))
+   #index = String.to_integer(String.at("30132123",max))
 
    IO.inspect index, label: "index"
+   IO.inspect "checking neighbor map"
+   IO.inspect neighborMap
    levelList =  Enum.at(neighborMap, max)
-   IO.inspect levelList
-   levelListReplaced = List.replace_at(levelList, index, "newNode")
+   IO.inspect levelList, label: "is level list right?"
+   levelListReplaced = List.replace_at(levelList, index, newNode)
    IO.inspect levelListReplaced
    modifiedNeighborMap = List.replace_at(neighborMap, max, levelListReplaced)
-   IO.inspect neighborMap
-   IO.inspect modifiedNeighborMap
+   IO.inspect neighborMap, label: "map before"
+   IO.inspect modifiedNeighborMap, label: "map modified"
    state = {hashId, modifiedNeighborMap}
    {:noreply,state}
    end
@@ -188,7 +223,7 @@ defmodule TapestrySimulator.Insertion do
     end)
     #IO.inspect levelNodes, label: hashID
 
-    levelIds = Enum.map((0..15), fn(digit) ->
+    levelIds = Enum.map((0..3), fn(digit) ->
       levelNode = Enum.find((tempNodes), fn(node) ->
         {ni, nhash} = node
         Integer.to_string(digit, 4) == String.at(nhash, level)
