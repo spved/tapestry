@@ -4,8 +4,11 @@ defmodule TapestrySimulator.Util do
   def  getLevels(), do: 8
   def  getDigits(), do: 4
 
-  def matchSuffix(node1, node2, n) when n > 7 do
-    n
+  def  maxHops(), do: 8
+
+
+  def matchSuffix(_, _, 8) do
+    8
   end
 
    def matchSuffix(node1, node2, n) do
@@ -17,6 +20,35 @@ defmodule TapestrySimulator.Util do
     end
   end
 
+  def getNext(map, level, index) do
+    pi = map |> Enum.at(level) |> Enum.at(index)
+    if pi != nil do
+      pi
+    else
+      pi = getNext(map, level, index+1)
+      pi
+    end
+  end
 
+  def nextHop(source, sourceHash, dest, destHash, level, map) do
+    if level == maxHops() do
+      {source, level}
+    else
+      {index, _} = :string.to_integer(String.at(destHash, level))
+
+      if level == 8 do
+        IO.inspect dest, label: destHash
+        IO.inspect source, label: sourceHash
+      end
+
+      pi = map |> Enum.at(level)|> Enum.at(index)
+
+      if pi == source do
+        nextHop(source, sourceHash, dest, destHash, level+1, map)
+      else
+        {pi, level+1}
+      end
+    end
+  end
 
 end

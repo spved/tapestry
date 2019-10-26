@@ -11,12 +11,12 @@ defmodule TapestrySimulator.Insertion do
     {:ok,pid}=GenServer.start_link(__MODULE__, :ok,[])
     pid
   end
-  def setHash(pid, nodeID) do
-   GenServer.call(pid, {:setHashId,nodeID})
+  def setHash(pid) do
+   GenServer.call(pid, {:setHashId})
   end
 
   def insertNode(pid,allNodes) do
-    GenServer.call(pid, {:fillNeighborMap,pid,allNodes})
+    GenServer.call(pid, {:fillNeighborMap,allNodes})
   end
 
    def createNeigborMap(pid) do
@@ -54,7 +54,7 @@ defmodule TapestrySimulator.Insertion do
        |> Enum.join("")
     end
 
-  def handle_call({:setHashId,nodeID}, _from ,state) do
+  def handle_call({:setHashId}, _from ,state) do
     {_, neighborMap} = state
     #hashId = :crypto.hash(:sha, Integer.to_string(nodeID))|> Base.encode16
     hashId = randomizer(8)
@@ -74,7 +74,7 @@ defmodule TapestrySimulator.Insertion do
     {:reply, NeighborMap, state}
   end
 
-  def handle_call({:fillNeighborMap,nodeID,numNodes}, _from ,state) do
+  def handle_call({:fillNeighborMap,numNodes}, _from ,state) do
     {hashId, _} = state
 
       #fillLevel will return list at each level, which is combined using map
@@ -82,7 +82,7 @@ defmodule TapestrySimulator.Insertion do
          fillLevel(level-1, self(), hashId,numNodes)
         end)
 
-        IO.inspect neighborMap, label: hashId
+        #IO.inspect neighborMap, label: hashId
     state={hashId, neighborMap}
     {:reply,hashId, state}
   end
@@ -241,6 +241,42 @@ def handle_call({:createNeigborMap,nodeID}, _from ,state) do
   def handle_cast({:notifyNodes, Ni, diff},state) do
     {hashId, _} = state
     i = String.at(hashId, diff)
+  end
+
+  def handle_cast({:updateCounter, hops},state) do
+    [{_, count}] = :ets.lookup(:table, "hops")
+    if hops > count do
+      :ets.update_counter(:table, "hops", hops-count)
+      #[{_, count}] = :ets.lookup(:table, "hops")
+      #IO.inspect count, label: "Updated Count"
+    end
+    {:noreply, state}
+  end
+
+  def deliverMsg(source, dest, counter) do
+    msg = Time.utc_now()
+    {destId, destHash} = dest
+    Process.send_after(source, {:deliver, destId, destHash, msg, 0, counter},1)
+  end
+
+  def handle_info({:deliver, destId, destHash, msg, level, counter} ,state) do
+    {hashID , neighborMap} = state
+    {pi, nextlevel} = TapestrySimulator.Util.nextHop(self(), hashID, destId, destHash, level, neighborMap)
+    if pi == self() do
+      hops = Time.utc_now().second - msg.second
+      #IO.inspect hops, label: "UpdateCounter"
+      GenServer.cast(counter, {:updateCounter,hops})
+      :ets.update_counter(:table, "tr", {2,1})
+
+    else
+      scheduleRouting(pi, destId, destHash, msg, nextlevel, counter)
+      #GenServer.cast(pi, {:deliver, destId, destHash, msg, level})
+    end
+    {:noreply, state}
+  end
+
+  defp scheduleRouting(pi, destId, destHash, msg, level, counter) do
+    Process.send_after(pi, {:deliver, destId, destHash, msg, level, counter}, 1000)
   end
 
   def init(:ok) do
