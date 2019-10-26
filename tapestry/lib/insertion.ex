@@ -13,28 +13,12 @@ defmodule TapestrySimulator.Insertion do
     pid
   end
 
-  def setHash(pid, nodeID) do
-    GenServer.call(pid, {:setHashId, nodeID})
+  def setHash(pid) do
+    GenServer.call(pid, {:setHashId})
   end
 
   def insertNode(pid, allNodes) do
-    GenServer.call(pid, {:fillNeighborMap, pid, allNodes})
-  end
-
-  def createNeigborMap(pid) do
-    GenServer.call(pid, {:createNeigborMap, pid})
-  end
-
-  def checkMap(pid) do
-    GenServer.call(pid, {:checkMap, pid})
-  end
-
-  def handle_call({:checkMap, pid}, _from, state) do
-    {hashId, neighborMap} = state
-    IO.inspect(pid)
-    IO.inspect(hashId)
-    IO.inspect(neighborMap)
-    {:reply, hashId, state}
+    GenServer.call(pid, {:fillNeighborMap, allNodes})
   end
 
   def getSurrogate(allNodes, pid) do
@@ -42,7 +26,7 @@ defmodule TapestrySimulator.Insertion do
   end
 
   def randomizer(length) do
-    numbers = "0123"
+    numbers = "012345"
     lists = numbers |> String.split("", trim: true)
     do_randomizer(length, lists)
   end
@@ -56,150 +40,24 @@ defmodule TapestrySimulator.Insertion do
     |> Enum.join("")
   end
 
-  def handle_call({:setHashId, nodeID}, _from, state) do
-    {_, neighborMap} = state
-    # hashId = :crypto.hash(:sha, Integer.to_string(nodeID))|> Base.encode16
-    hashId = randomizer(8)
-    state = {hashId, neighborMap}
-    {:reply, hashId, state}
-  end
-
-  def handle_call({:getHashId}, _from, state) do
-    {hashId, _} = state
-    {:reply, hashId, state}
-  end
-
-  def handle_call({:getNeighborMap}, _from, state) do
-    {_, NeighborMap} = state
-    {:reply, NeighborMap, state}
-  end
-
-  def handle_call({:fillNeighborMap, nodeID, numNodes}, _from, state) do
-    {hashId, _} = state
-
-    # fillLevel will return list at each level, which is combined using map
-    neighborMap =
-      Enum.map(0..7, fn level ->
-        fillLevel(level, self(), hashId, numNodes)
-      end)
-
-    # IO.inspect neighborMap, label: hashId
-    state = {hashId, neighborMap}
-    {:reply, hashId, state}
-  end
-
-  def handle_call({:createNeigborMap, nodeID}, _from, state) do
-    {hashId, _} = state
-
-    neighborMap =
-      Enum.map(0..7, fn x ->
-        lis =
-          Enum.map(0..3, fn y ->
-            nil
-          end)
-      end)
-
-    # IO.inspect neighborMap
-    state = {hashId, neighborMap}
-    {:reply, hashId, state}
-  end
-
-  def handle_call({:getSurrogate, allNodes, pid}, _from, state) do
-    # IO.inspect "came to surrogate"
-
-    {hashId, neighborMap} = state
-    # IO.inspect "hashId"
-    # IO.inspect "30132123"
-    n1 = String.graphemes(hashId)
-    IO.inspect(hashId)
-
-    nodes =
-      Enum.map(allNodes, fn ni ->
-        nhash =
-          if(ni != pid) do
-            GenServer.call(ni, {:getHashId})
-          else
-            hashId
-          end
-
-        {ni, nhash}
-      end)
-
-    max = 0
-    surrogate = ""
-
-    maxList =
-      Enum.map(nodes, fn node ->
-        {ni, nhash} = node
-        n2 = String.graphemes(nhash)
-        x = TapestrySimulator.Util.matchSuffix(n1, n2, 0)
-
-        {max, surrogate} =
-          if(x >= max) do
-            {x, node}
-          else
-            {max, surrogate}
-          end
-
-        {max, surrogate}
-      end)
-
-    {max, surrogate} = Enum.max(maxList)
-
-    surrogateList =
-      Enum.map(maxList, fn s ->
-        {m, surrogate} = s
-
-        if(m == max) do
-          s
-        else
-        end
-      end)
-
-    notifyNeighbor(Enum.filter(surrogateList, &(!is_nil(&1))), pid)
-    state = {hashId, neighborMap}
-    {:reply, hashId, state}
-  end
 
   def notifyNeighbor(surrogateList, newNode) do
     Enum.map(surrogateList, fn s ->
-      {max, {pid, hashId}} = s
+      {max, {pid, _}} = s
 
       max =
-        if max == 8 do
-          7
+        if max == TapestrySimulator.Util.maxHops() do
+          TapestrySimulator.Util.maxHops() - 1
         else
           max
         end
 
-      GenServer.cast(pid, {:notify, pid, newNode, hashId, max})
+      GenServer.cast(pid, {:notify, newNode, max})
     end)
   end
 
-  def handle_cast({:notify, s, newNode, sHash, max}, state) do
-    {hashID, _} = state
-
-    newNodeHash =
-      if(newNode != self()) do
-        GenServer.call(newNode, {:getHashId})
-      else
-        hashID
-      end
-
-    {hashId, neighborMap} = state
-
-    index = String.to_integer(String.at(newNodeHash, max))
-    # index = String.to_integer(String.at("30132123",max))
-
-    levelList = Enum.at(neighborMap, max)
-    levelListReplaced = List.replace_at(levelList, index, newNode)
-    modifiedNeighborMap = List.replace_at(neighborMap, max, levelListReplaced)
-    state = {hashId, modifiedNeighborMap}
-    {:noreply, state}
-  end
-
   def fillLevel(level, pid, hashID, allNodes) do
-    # 0 1 2 3 4 5 6 7 8 9 A B C D E F
+    # 0 1 2 5 6 5 6 7 8 9 A B C D E F
     n1 = String.graphemes(hashID)
 
     nodes =
@@ -216,7 +74,7 @@ defmodule TapestrySimulator.Insertion do
 
     tempNodes =
       Enum.filter(nodes, fn node ->
-        {ni, nhash} = node
+        {_, nhash} = node
         n2 = String.graphemes(nhash)
         x = TapestrySimulator.Util.matchSuffix(n1, n2, 0)
 
@@ -224,10 +82,11 @@ defmodule TapestrySimulator.Insertion do
       end)
 
     levelIds =
-      Enum.map(0..3, fn digit ->
+
+      Enum.map(0..5, fn digit ->
         levelNode =
           Enum.find(tempNodes, fn node ->
-            {ni, nhash} = node
+            {_, nhash} = node
 
             if Integer.to_string(digit, 10) != String.at(hashID, level) || hashID == nhash do
               Integer.to_string(digit, 10) == String.at(nhash, level)
@@ -253,9 +112,87 @@ defmodule TapestrySimulator.Insertion do
     {:reply, levelNodes, state}
   end
 
-  def handle_cast({:notifyNodes, Ni, diff}, state) do
+  def handle_call({:setHashId}, _from, state) do
+    {_, neighborMap} = state
+    # hashId = :crypto.hash(:sha, Integer.to_string(nodeID))|> Base.encode16
+    hashId = randomizer(8)
+    state = {hashId, neighborMap}
+    {:reply, hashId, state}
+  end
+
+  def handle_call({:getHashId}, _from, state) do
     {hashId, _} = state
-    i = String.at(hashId, diff)
+    {:reply, hashId, state}
+  end
+
+  def handle_call({:getNeighborMap}, _from, state) do
+    {_, NeighborMap} = state
+    {:reply, NeighborMap, state}
+  end
+
+  def handle_call({:fillNeighborMap, numNodes}, _from, state) do
+    {hashId, _} = state
+
+    # fillLevel will return list at each level, which is combined using map
+    neighborMap =
+      Enum.map(0..7, fn level ->
+        fillLevel(level, self(), hashId, numNodes)
+      end)
+
+    state = {hashId, neighborMap}
+    {:reply, hashId, state}
+  end
+
+  def handle_call({:getSurrogate, allNodes, pid}, _from, state) do
+    {hashId, neighborMap} = state
+    n1 = String.graphemes(hashId)
+
+    nodes =
+      Enum.map(allNodes, fn ni ->
+        nhash =
+          if(ni != pid) do
+            GenServer.call(ni, {:getHashId})
+          else
+            hashId
+          end
+
+        {ni, nhash}
+      end)
+
+    max = 0
+    surrogate = ""
+
+    maxList =
+      Enum.map(nodes, fn node ->
+        {_, nhash} = node
+        n2 = String.graphemes(nhash)
+        x = TapestrySimulator.Util.matchSuffix(n1, n2, 0)
+
+        {max, surrogate} =
+          if(x >= max) do
+            {x, node}
+          else
+            {max, surrogate}
+          end
+
+        {max, surrogate}
+      end)
+
+    {max, _} = Enum.max(maxList)
+
+    surrogateList =
+      Enum.map(maxList, fn s ->
+        {m, _} = s
+
+        if(m == max) do
+          s
+        else
+        end
+      end)
+
+    notifyNeighbor(Enum.filter(surrogateList, &(!is_nil(&1))), pid)
+    state = {hashId, neighborMap}
+    {:reply, hashId, state}
   end
 
   def handle_cast({:updateCounter, hops}, state) do
@@ -263,40 +200,57 @@ defmodule TapestrySimulator.Insertion do
 
     if hops > count do
       :ets.update_counter(:table, "hops", hops - count)
-      # [{_, count}] = :ets.lookup(:table, "hops")
-      # IO.inspect count, label: "Updated Count"
     end
 
+    {:noreply, state}
+  end
+
+  def handle_cast({:notify, newNode, max}, state) do
+    {hashID, _} = state
+
+    newNodeHash =
+      if(newNode != self()) do
+        GenServer.call(newNode, {:getHashId})
+      else
+        hashID
+      end
+
+    {hashId, neighborMap} = state
+
+    index = String.to_integer(String.at(newNodeHash, max))
+    # index = String.to_integer(String.at("50152125",max))
+
+    levelList = Enum.at(neighborMap, max)
+    levelListReplaced = List.replace_at(levelList, index, newNode)
+    modifiedNeighborMap = List.replace_at(neighborMap, max, levelListReplaced)
+    state = {hashId, modifiedNeighborMap}
     {:noreply, state}
   end
 
   def deliverMsg(source, dest, counter) do
     msg = Time.utc_now()
-    {destId, destHash} = dest
-    Process.send_after(source, {:deliver, destId, destHash, msg, 0, counter}, 1)
+    Process.send_after(source, {:deliver, dest, msg, 0, counter}, 1)
   end
 
-  def handle_info({:deliver, destId, destHash, msg, level, counter}, state) do
-    {hashID, neighborMap} = state
+  def handle_info({:deliver, dest, msg, level, counter}, state) do
+    {_, neighborMap} = state
 
     {pi, nextlevel} =
-      TapestrySimulator.Util.nextHop(self(), hashID, destId, destHash, level, neighborMap)
+      TapestrySimulator.Util.nextHop(self(), dest, level, neighborMap)
 
     if pi == self() do
       hops = Time.utc_now().second - msg.second
-      # IO.inspect hops, label: "UpdateCounter"
       GenServer.cast(counter, {:updateCounter, hops})
       :ets.update_counter(:table, "tr", {2, 1})
     else
-      scheduleRouting(pi, destId, destHash, msg, nextlevel, counter)
-      # GenServer.cast(pi, {:deliver, destId, destHash, msg, level})
+      scheduleRouting(pi, dest, msg, nextlevel, counter)
     end
 
     {:noreply, state}
   end
 
-  defp scheduleRouting(pi, destId, destHash, msg, level, counter) do
-    Process.send_after(pi, {:deliver, destId, destHash, msg, level, counter}, 1000)
+  defp scheduleRouting(pi, dest, msg, level, counter) do
+    Process.send_after(pi, {:deliver, dest, msg, level, counter}, 1000)
   end
 
   def init(:ok) do

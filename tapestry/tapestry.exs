@@ -10,9 +10,9 @@ defmodule TapestrySimulator do
       numNodes = round(numNodesAll * 0.8)
 
       allNodes =
-        Enum.map(1..numNodes, fn x ->
+        Enum.map(1..numNodes, fn _ ->
           pid = TapestrySimulator.Insertion.start_node()
-          TapestrySimulator.Insertion.setHash(pid, x)
+          TapestrySimulator.Insertion.setHash(pid)
           pid
         end)
 
@@ -25,11 +25,10 @@ defmodule TapestrySimulator do
       :ets.insert(table, {"dynamicNode", []})
 
       dynamicNodes =
-        Enum.map((numNodes + 1)..numNodesAll, fn x ->
+        Enum.map((numNodes + 1)..numNodesAll, fn _ ->
           [{_, dynamicNodeList}] = :ets.lookup(table, "dynamicNode")
-          newNode = dynamicNodeInsertion(x, allNodes ++ dynamicNodeList)
+          newNode = dynamicNodeInsertion(allNodes ++ dynamicNodeList)
           dynamicNodeList = dynamicNodeList ++ [newNode]
-          # IO.inspect dynamicNodeList, label: "dynamicNodeList"
           :ets.insert(table, {"dynamicNode", dynamicNodeList})
           newNode
         end)
@@ -66,9 +65,9 @@ defmodule TapestrySimulator do
     end
   end
 
-  def dynamicNodeInsertion(x, allNodes) do
+  def dynamicNodeInsertion(allNodes) do
     pid = TapestrySimulator.Insertion.start_node()
-    TapestrySimulator.Insertion.setHash(pid, x)
+    TapestrySimulator.Insertion.setHash(pid)
     allNodes = allNodes ++ [pid]
     TapestrySimulator.Insertion.insertNode(pid, allNodes)
     TapestrySimulator.Insertion.getSurrogate(List.delete(allNodes, pid), pid)

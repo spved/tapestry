@@ -1,6 +1,6 @@
 defmodule TapestrySimulator.Util do
   def getLevels(), do: 8
-  def getDigits(), do: 4
+  def getDigits(), do: 6
 
   def maxHops(), do: 8
 
@@ -17,21 +17,17 @@ defmodule TapestrySimulator.Util do
     end
   end
 
-  def nextHop(source, sourceHash, dest, destHash, level, map) do
+  def nextHop(source, dest, level, map) do
+    {_, destHash} = dest
     if level == maxHops() do
       {source, level}
     else
       {index, _} = :string.to_integer(String.at(destHash, level))
 
-      if level == 8 do
-        IO.inspect(dest, label: destHash)
-        IO.inspect(source, label: sourceHash)
-      end
-
       pi = map |> Enum.at(level) |> Enum.at(index)
 
       if pi == source do
-        nextHop(source, sourceHash, dest, destHash, level + 1, map)
+        nextHop(source, dest, level + 1, map)
       else
         {pi, level + 1}
       end
